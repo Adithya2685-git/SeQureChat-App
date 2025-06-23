@@ -28,7 +28,6 @@ def measure(circuits,shots):
     finalstring= finalstring.replace(" ", "")
     return finalstring
 
-
 def rng(qubits):
     
     qc= QuantumCircuit(4,4)
@@ -38,21 +37,7 @@ def rng(qubits):
     qc.measure_all()
     return measure(qc,qubits//4)
 
-
-def main():
-
-    textsizelimit= 1024
-    message= "HEY BRO HALOOOO"
-
-    qubitpairs= textsizelimit *4
-    paircounts=4
-
-    Alicebasis= rng(qubitpairs)
-    Bobbasis= rng(qubitpairs)
-
-    # 0 2 4 6 Alice , 1 3 5 7 BOB ... Even Alice, Odd bob
-    
-    totalcircuitscount= qubitpairs// paircounts
+def makecircuits(totalcircuitscount,paircounts, Alicebasis,Bobbasis):
     circuits=[]
     for i in range(totalcircuitscount):
         qc= QuantumCircuit(paircounts*2,paircounts*2)
@@ -73,27 +58,72 @@ def main():
     transpiled_circuits = transpile(circuits, AerSimulator())
     measuredstring= measure(transpiled_circuits,1)
 
-    alicekey=""
-    bobkey  =""
+    return measuredstring
 
-    for i in range(len(measuredstring)):
-        if i%2==0:
-            alicekey+= measuredstring[i]
-        else :
-            bobkey+= measuredstring[i]
-
-
-
-    #After measurement,  remove bits where basis isn't the same from keys
-    finalbasis=""
-    for i in range(len(Alicebasis)):
-        if Alicebasis[i]!= Bobbasis[i]:
-            alicekey= alicekey[:i]+ alicekey[i+1:]
-            bobkey= bobkey[:i]+ bobkey[i+1:]
-        else:
-            finalbasis+= Alicebasis
-
+def extract_keys(measuredstring):
+    """Extract Alice and Bob keys from measured string"""
+    alicekey = ""
+    bobkey = ""
     
+    for i in range(len(measuredstring)):
+        if i % 2 == 0:
+            alicekey += measuredstring[i]
+        else:
+            bobkey += measuredstring[i]
+    
+    return alicekey, bobkey
+
+def filter_keys_by_basis(alicekey, bobkey, Alicebasis, Bobbasis):
+    """Remove bits where basis isn't the same from keys"""
+    finalbasis = ""
+    filtered_alicekey = ""
+    filtered_bobkey = ""
+    
+    for i in range(len(Alicebasis)):
+        if Alicebasis[i] == Bobbasis[i]:
+            filtered_alicekey += alicekey[i]
+            filtered_bobkey += bobkey[i]
+            finalbasis += Alicebasis[i]
+    
+    return filtered_alicekey, filtered_bobkey, finalbasis
+
+def test_subset(final_alicekey, final_bobkey, finalbasis):
+    import random
+    while len(finalbasis)> 1024:
+        index= random.choice(finalbasis)
+
+        if final_alicekey[index]== final_bobkey[index]:
+            final_alicekey= final_alicekey[:index]+ final_alicekey[index+1:]   
+            final_bobkey= final_bobkey[:index]+ final_bobkey[index+1:]
+        else:
+            print("[ABORT] ERROR IN KEY GENERATION")
+
+def main():
+
+    textsizelimit= 1024
+    message= "HEY BRO HALOOOO"
+
+    qubitpairs= textsizelimit *4
+    paircounts=4
+
+    Alicebasis= rng(qubitpairs)
+    Bobbasis= rng(qubitpairs)
+
+    # 0 2 4 6 Alice , 1 3 5 7 BOB ... Even Alice, Odd bob
+    totalcircuitscount= qubitpairs// paircounts
+    
+    measuredstring=makecircuits(totalcircuitscount,paircounts, Alicebasis,Bobbasis)
+    
+    # Extract initial keys
+    alicekey, bobkey = extract_keys(measuredstring)
+    
+
+
+    # Filter keys based on matching basis
+    #final_alicekey, final_bobkey, finalbasis = filter_keys_by_basis(alicekey, bobkey, Alicebasis, Bobbasis)
+    
+
+    #finaly_alicekey,final_bobkey,finalbasis= test_subset(final_alicekey, final_bobkey, finalbasis)
 
 
 if __name__== '__main__':

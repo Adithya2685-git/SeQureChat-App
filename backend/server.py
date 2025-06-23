@@ -1,7 +1,7 @@
 import socket
 import threading
 
-HEADER= 64
+HEADER= 128
 PORT=5050
 SERVER= socket.gethostbyname(socket.gethostname())
 FORMAT= 'utf-8'
