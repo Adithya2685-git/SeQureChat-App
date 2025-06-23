@@ -123,7 +123,7 @@ def main():
     #final_alicekey, final_bobkey, finalbasis = filter_keys_by_basis(alicekey, bobkey, Alicebasis, Bobbasis)
     
 
-    #finaly_alicekey,final_bobkey,finalbasis= test_subset(final_alicekey, final_bobkey, finalbasis)
+    #final_alicekey,final_bobkey,finalbasis= test_subset(final_alicekey, final_bobkey, finalbasis)
 
 
 if __name__== '__main__':
