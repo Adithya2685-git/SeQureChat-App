@@ -1,7 +1,7 @@
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit_aer import AerSimulator
 from qiskit import transpile
-
+from concurrent.futures import ThreadPoolExecutor
 
 #basis gates qubit pairs for ALice and Bob Each
 # if 4096 then 4096 for alice and bob
@@ -99,15 +99,18 @@ def test_subset(final_alicekey, final_bobkey, finalbasis):
             print("[ABORT] ERROR IN KEY GENERATION")
 
 def main():
-
     textsizelimit= 1024
-    message= "HEY BRO HALOOOO"
 
     qubitpairs= textsizelimit *4
     paircounts=4
 
-    Alicebasis= rng(qubitpairs)
-    Bobbasis= rng(qubitpairs)
+    # Threading RNG for better performance
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        alice_future = executor.submit(rng, qubitpairs)
+        bob_future = executor.submit(rng, qubitpairs)
+        
+        Alicebasis = alice_future.result()
+        Bobbasis = bob_future.result()
 
     # 0 2 4 6 Alice , 1 3 5 7 BOB ... Even Alice, Odd bob
     totalcircuitscount= qubitpairs// paircounts
@@ -117,14 +120,12 @@ def main():
     # Extract initial keys
     alicekey, bobkey = extract_keys(measuredstring)
     
-
-
     # Filter keys based on matching basis
     #final_alicekey, final_bobkey, finalbasis = filter_keys_by_basis(alicekey, bobkey, Alicebasis, Bobbasis)
     
-
     #final_alicekey,final_bobkey,finalbasis= test_subset(final_alicekey, final_bobkey, finalbasis)
-
+    
+    return alicekey,Alicebasis, bobkey,Bobbasis
 
 if __name__== '__main__':
     main()
