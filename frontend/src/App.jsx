@@ -1,6 +1,4 @@
-import './App.css'
-import LoginScreen from './LoginScreen.jsx';
-
+import LoginScreen from "./LoginScreen/LoginScreen"
 
 function App() {
 
