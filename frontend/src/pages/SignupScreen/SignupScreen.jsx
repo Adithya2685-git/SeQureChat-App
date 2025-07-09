@@ -1,112 +1,95 @@
-import { useState,useEffect } from 'react';
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import './SignupScreen.css';
-import backgroundvideo from '../assets/loginbackground.mp4'
+import backgroundvideo from '../../assets/loginbackground.mp4';
+/*
 
-function SignupScreen(){
+const { MongoClient, ServerApiVersion } = require('mongodb');
+const uri = "mongodb+srv://adi:Adithya2685@000@cluster0.mxvkyjc.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+
+// Create a MongoClient with a MongoClientOptions object to set the Stable API version
+const client = new MongoClient(uri, {
+  serverApi: {
+    version: ServerApiVersion.v1,
+    strict: true,
+    deprecationErrors: true,
+  }
+});
+
+async function run() {
+  try {
+    // Connect the client to the server	(optional starting in v4.7)
+    await client.connect();
+    // Send a ping to confirm a successful connection
+    await client.db("admin").command({ ping: 1 });
+    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+  } finally {
+    // Ensures that the client will close when you finish/error
+    await client.close();
+  }
+}
+run().catch(console.dir);
+
+
+*/
+function SignupScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  const handleLogin = (e) => {
+  const handleSignup = (e) => {
     e.preventDefault();
     setIsLoading(true);
     setErrorMessage('');
+    // TODO: Add your signup logic here
+
     
-    // Add your login logic here
-    console.log('Login clicked', { email, password, rememberMe });
-    
-    // Simulate API call - you can replace this with actual login logic
     setTimeout(() => {
       setIsLoading(false);
-      // TODO: Add actual authentication logic here
     }, 1000);
   };
 
-  const handleSignup = () => {
-    // Add your signup logic here
-    console.log('Signup clicked');
-    // TODO: Add navigation to signup page
-  };
-
-  const handleForgotPassword = (e) => {
-    e.preventDefault();
-    // TODO: Add forgot password logic here
-    console.log('Forgot password clicked');
-  };
-
-  const validateForm = () => {
-    // TODO: Add form validation logic
-    if (!email || !password) {
-      setErrorMessage('Please fill in all fields');
-      return false;
-    }
-    setErrorMessage('');
-    return true;
-  };
-
-  return(
+  return (
     <>
-    <video src={backgroundvideo} autoPlay muted loop className="background-video"></video>
-<div className='greetings'>
-        
-  <h1>Hello There!</h1>
-  <h1>Welcome to SeQure Chat</h1>
-  <h3>The most secure real-time chat app with Quantum Encryption</h3>
-        
-<div className='loginbox'>
-  <form onSubmit={handleLogin}>
-        
-  <input 
-    type='email' 
-    placeholder='Email' 
-    value={email} 
-    onChange={(e) => setEmail(e.target.value)} 
-    disabled={isLoading}
-    required 
-  />
-    <br></br>
-  <input 
-    type='password' 
-    placeholder='password' 
-    value={password} 
-    onChange={(e) => setPassword(e.target.value)} 
-    disabled={isLoading}
-    required 
-  />
-  
-  {errorMessage && <div className="error-message">{errorMessage}</div>}
+      <video src={backgroundvideo} autoPlay muted loop className="background-video"></video>
+      <div className='greetings'>
+        <h1>Sign Up</h1>
+        <h1>Welcome to SeQure Chat</h1>
+        <h3>The most secure real-time chat app with Quantum Encryption</h3>
+        <div className='loginbox'>
+          <form onSubmit={handleSignup}>
+            <input
+              type='email'
+              placeholder='Email'
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={isLoading}
+              required
+            />
+            <br />
+            <input
+              type='password'
+              placeholder='Password'
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              disabled={isLoading}
+              required
+            />
+            {errorMessage && <div className="error-message">{errorMessage}</div>}
 
-<div className='forgot-remember'>
-           
-  <label>
-  <input 
-    type='checkbox' 
-    checked={rememberMe}
-    onChange={(e) => setRememberMe(e.target.checked)}
-    disabled={isLoading}
-  />Remember me
-  </label>
-
-    <a href="#" onClick={handleForgotPassword}>Forgot Password?</a>
-</div>
-
-<div className='register-signup'>
-    <p>Don't have an account?<a href="#" onClick={handleSignup}>Register</a></p>
-</div>
-<br></br>
-<button type="submit" disabled={isLoading} className={isLoading ? 'loading' : ''}>
-  {isLoading ? 'Signing in...' : 'Login'}
-</button>
-
-
+            <div className='register-signup'>
+              <p>Have an account? <Link to="/">Login</Link></p>
+            </div>
+            <br />
+            <button type="submit" disabled={isLoading} className={isLoading ? 'loading' : ''}>
+              {isLoading ? 'Signing up...' : 'Sign Up'}
+            </button>
           </form>
         </div>
-        
-      </div> 
+      </div>
     </>
-  )
+  );
 }
 
 export default SignupScreen
