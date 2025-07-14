@@ -1,46 +1,14 @@
 import { useState,useEffect } from 'react';
 import './LoginScreen.css';
 import backgroundvideo from '../../assets/loginbackground.mp4'
-import { Link } from 'react-router-dom';
-
-
-
-/*
-const { MongoClient, ServerApiVersion } = require('mongodb');
-const uri = "mongodb+srv://adi:Adithya2685@000@cluster0.mxvkyjc.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
-
-// Create a MongoClient with a MongoClientOptions object to set the Stable API version
-const client = new MongoClient(uri, {
-  serverApi: {
-    version: ServerApiVersion.v1,
-    strict: true,
-    deprecationErrors: true,
-  }
-});
-
-async function run() {
-  try {
-    // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
-    // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
-  } finally {
-    // Ensures that the client will close when you finish/error
-    await client.close();
-  }
-}
-run().catch(console.dir);
-
-
-*/
-
+import { Link,useNavigate } from 'react-router-dom';
 
 function LoginScreen(){
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const navigate= useNavigate();
 
   const handleLogin = (e) => {
     e.preventDefault();
@@ -48,8 +16,11 @@ function LoginScreen(){
     setErrorMessage('');
     
     // Add your login logic here
-    console.log('Login clicked', { email, password, rememberMe });
-    
+    const newUser={
+      userid: email,
+      pass: password,
+    }
+
     // Simulate API call - you can replace this with actual login logic
     setTimeout(() => {
       setIsLoading(false);
