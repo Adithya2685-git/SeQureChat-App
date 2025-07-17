@@ -4,38 +4,45 @@ import backgroundvideo from '../../assets/loginbackground.mp4'
 import { Link,useNavigate } from 'react-router-dom';
 
 function LoginScreen(){
-  const [email, setEmail] = useState('');
+  const [userid, setUserid] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const navigate= useNavigate();
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setErrorMessage('');
     
-    // Add your login logic here
+
     const newUser={
-      userid: email,
-      pass: password,
+      username: userid,
+      password: password,
     }
 
-    // Simulate API call - you can replace this with actual login logic
-    setTimeout(() => {
+    try {
+      const res = await fetch("http://localhost:8000/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(newUser)
+      });
+      
+      if (res.ok) {
+        alert("Login successful!");
+        localStorage.setItem('username', userid); // Save the username after successful login/signup
+        navigate("/chat");
+      } else {
+        const errorData = await res.json();
+        setErrorMessage(errorData.detail || 'Signup failed. Please try again.');
+      }
+    } catch (error) {
+      setErrorMessage('An error occurred. Please check your connection.');
+    } finally {
       setIsLoading(false);
-      // TODO: Add actual authentication logic here
-    }, 1000);
-  };
-
-  const validateForm = () => {
-    // TODO: Add form validation logic
-    if (!email || !password) {
-      setErrorMessage('Please fill in all fields');
-      return false;
     }
-    setErrorMessage('');
-    return true;
   };
 
   return(
@@ -51,10 +58,10 @@ function LoginScreen(){
   <form onSubmit={handleLogin}>
         
   <input 
-    type='email' 
-    placeholder='Email' 
-    value={email} 
-    onChange={(e) => setEmail(e.target.value)} 
+    type='text' 
+    placeholder='Username' 
+    value={userid} 
+    onChange={(e) => setUserid(e.target.value)} 
     disabled={isLoading}
     required 
   />

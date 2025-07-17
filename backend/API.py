@@ -1,4 +1,5 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException,Request
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from Qkey import main as generate_keys
 import asyncio
@@ -7,7 +8,22 @@ from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 
 app = FastAPI()
+# CORS middleware config
+origins = [
+    "http://localhost:5173",  # The default port for Vite/React dev server
+    "http://localhost:3000",  # A common port for React dev server
+]
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+#mongoDB integration
 username = "adi"
 password = quote_plus("Adithya2685@000")  # Escapes special characters
 uri = f"mongodb+srv://{username}:{password}@cluster0.mxvkyjc.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
@@ -27,24 +43,38 @@ class incoming(BaseModel):
     username: str
     password: str
 
-@app.get("/signup")
+@app.post("/signup")
 async def signup(req: incoming):
-    if users.find({"name": req.username}):
+    if users.find_one({"name": req.username}):
         raise HTTPException(status_code=409, detail="Username already exists")
     else:
         users.insert_one({"name": req.username,
                           "password": req.password})
         return {"message":"OK, User created succesfully"}
 
-@app.get("/login")
+@app.post("/login")
 async def login(req: incoming):
-    if users.find({"name": req.username,
+    if users.find_one({"name": req.username,
                    "password": req.password}):
         return {"message":"OK, Authorization Success"}
     else:
         raise HTTPException(status_code=401, detail="Invalid Username or Password")
 
+# Chats fetch
+@app.get("/chats/{username}")
+async def get_chats(username: str):
+    user_chats = db.chats.find({"participants": username})  # Assuming a 'chats' collection
+    chats = []
+    for chat in user_chats:
+        chats.append({
+            "name": chat["name"],  # Chat name or participant
+            "messages": chat["messages"]  # List of messages
+        })
+    return chats
 
+
+
+# QKey distribution API
 qkd_data = {}
 
 class QKDRequest(BaseModel):

@@ -4,7 +4,7 @@ import './SignupScreen.css';
 import backgroundvideo from '../../assets/loginbackground.mp4';
 
 function SignupScreen() {
-  const [email, setEmail] = useState('');
+  const [userid, setUserid] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -16,22 +16,32 @@ const handleSignup = async (e) => {
     setErrorMessage('');
 
     const newUser={
-      userid: email,
-      pass: password,
+      username: userid,
+      password: password,
     }
 
-    const res = await fetch("http://localhost:8000/signup", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-  body: JSON.stringify(newUser)
-});
-    
-if (res.ok) {
-  alert("Signup successful!");
-  navigate("/chat");
-}
+    try {
+      const res = await fetch("http://localhost:8000/signup", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(newUser)
+      });
+      
+      if (res.ok) {
+        alert("Signup successful!");
+        localStorage.setItem('username', userid); // Save the username after successful login/signup
+        navigate("/chat");
+      } else {
+        const errorData = await res.json();
+        setErrorMessage(errorData.detail || 'Signup failed. Please try again.');
+      }
+    } catch (error) {
+      setErrorMessage('An error occurred. Please check your connection.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -44,10 +54,10 @@ if (res.ok) {
         <div className='loginbox'>
           <form onSubmit={handleSignup}>
             <input
-              type='email'
-              placeholder='Email'
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              type='text'
+              placeholder='Username'
+              value={userid}
+              onChange={(e) => setUserid(e.target.value)}
               disabled={isLoading}
               required
             />
