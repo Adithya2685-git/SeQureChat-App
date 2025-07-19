@@ -6,7 +6,7 @@ import asyncio
 from urllib.parse import quote_plus
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
-
+from datetime import datetime
 app = FastAPI()
 # CORS middleware config
 origins = [
@@ -71,6 +71,56 @@ async def get_chats(username: str):
             "messages": chat["messages"]  # List of messages
         })
     return chats
+
+
+
+
+# Search users endpoint
+@app.get("/users/search")
+async def search_users(query: str):
+    # Search for users whose username contains the query (case-insensitive)
+    user_cursor = users.find({"name": {"$regex": query, "$options": "i"}})
+    user_list = []
+    for user in user_cursor:
+        user_list.append({"username": user["name"]})
+    return user_list
+
+# Create chat endpoint
+@app.post("/chats/create")
+async def create_chat(req: dict):
+    participants = req.get("participants", [])
+    if len(participants) != 2:
+        raise HTTPException(status_code=400, detail="Chat must have exactly 2 participants")
+    
+    # Check if chat already exists between these users
+    existing_chat = db.chats.find_one({
+        "participants": {"$all": participants}
+    })
+    
+    if existing_chat:
+        return {
+            "id": str(existing_chat["_id"]),
+            "name": participants[1] if participants[0] == participants[0] else participants[0],
+            "participants": participants,
+            "messages": existing_chat.get("messages", [])
+        }
+    
+    # Create new chat
+    new_chat = {
+        "participants": participants,
+        "messages": [],
+        "created_at": datetime.utcnow()
+    }
+    
+    result = db.chats.insert_one(new_chat)
+    
+    return {
+        "id": str(result.inserted_id),
+        "name": participants[1] if participants[0] == participants[0] else participants[0],
+        "participants": participants,
+        "messages": []
+    }
+
 
 
 
