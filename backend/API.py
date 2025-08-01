@@ -60,16 +60,37 @@ async def login(req: incoming):
     else:
         raise HTTPException(status_code=401, detail="Invalid Username or Password")
 
-# Chats fetch
+
 @app.get("/chats/{username}")
 async def get_chats(username: str):
-    user_chats = db.chats.find({"participants": username})  # Assuming a 'chats' collection
+    user_chats = db.chats.find({"participants": username})
     chats = []
-    for chat in user_chats:
-        chats.append({
-            "name": chat["name"],  # Chat name or participant
-            "messages": chat["messages"]  # List of messages
-        })
+    
+    for i, chat in enumerate(user_chats):
+        participants = chat.get("participants", [])
+        other_participants = [p for p in participants if p != username]
+        
+        # Check for case-sensitivity or whitespace issues
+        is_user_in_participants = any(p.strip().lower() == username.strip().lower() for p in participants)
+        
+        
+        chat_name = chat.get("name")
+        
+        if not chat_name:
+            if len(other_participants) > 0:
+                chat_name = ", ".join(other_participants)
+            elif is_user_in_participants:
+                chat_name = "Notes to Self"
+            else:
+                # This case should be almost impossible if the DB query is working
+                chat_name = "Orphaned Chat" 
+        
+        final_object = {
+            "id": str(chat["_id"]), 
+            "name": chat_name,
+            "messages": chat.get("messages", [])
+        }
+        chats.append(final_object)
     return chats
 
 
