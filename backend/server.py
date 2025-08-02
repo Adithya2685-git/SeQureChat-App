@@ -40,6 +40,13 @@ async def handler(websocket):
             try:
                 data = json.loads(message)
                 msg_type = data.get("type")
+
+                # VVV --- EVE'S VIEW OF THE PUBLIC CHANNEL --- VVV
+                if msg_type == 'final_message':
+                    ciphertext = data.get('encryptedText', '[empty]')
+                    print(f"🕵️‍♀️ EVE intercepts final encrypted message: {ciphertext}")
+                # ^^^ --- END OF EVE'S VIEW --- ^^^
+
                 sender = data.get("sender")
                 receiver = data.get("receiver")
 

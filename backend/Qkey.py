@@ -2,7 +2,7 @@ from qiskit import QuantumCircuit,QuantumRegister, ClassicalRegister
 from qiskit_aer import AerSimulator
 from qiskit.transpiler import generate_preset_pass_manager
 from qiskit_ibm_runtime import SamplerV2 as Sampler
-
+import random
 
 def filter_keys_by_basis(alicekey, bobkey, Alicebasis, Bobbasis):
     """Remove bits where basis isn't the same from keys"""
@@ -18,7 +18,7 @@ def filter_keys_by_basis(alicekey, bobkey, Alicebasis, Bobbasis):
     
     return filtered_alicekey, filtered_bobkey, finalbasis
 
-def drawcircuit(paircounts):
+def drawcircuit(paircounts,inject_quantum_eve):
     alicebasisCbit= ClassicalRegister(paircounts,name='alicebasis')
     bobbasisCbit= ClassicalRegister(paircounts,name='bobbasis')
 
@@ -31,8 +31,9 @@ def drawcircuit(paircounts):
     alicekeyCbit= ClassicalRegister(paircounts, name='alicekey')
     bobkeyCbit= ClassicalRegister(paircounts, name='bobkey')
 
-    qc= QuantumCircuit(alicebasisQbit,bobbasisQbit,alicekeyqbit,bobkeyqbit,alicebasisCbit, bobbasisCbit, alicekeyCbit, bobkeyCbit)
-
+    evekeyQbit= QuantumRegister(paircounts,name='Qeve')
+    evekeyCbit=ClassicalRegister(paircounts,name='evekey')
+    qc= QuantumCircuit(alicebasisQbit,bobbasisQbit,alicekeyqbit,bobkeyqbit,alicebasisCbit, bobbasisCbit, alicekeyCbit, bobkeyCbit,evekeyQbit,evekeyCbit)
 
     qc.h(alicebasisQbit)
     qc.measure(alicebasisQbit,alicebasisCbit)
@@ -42,6 +43,9 @@ def drawcircuit(paircounts):
 
     qc.h(alicekeyqbit)
     qc.cx(alicekeyqbit,bobkeyqbit)
+
+    if inject_quantum_eve:
+        qc.cx(alicekeyqbit,evekeyQbit)
 
     # basis for alice and bob , 0 = Z,  1= X, So another H is done for if_test=1 
     for i in range(paircounts):
@@ -54,6 +58,13 @@ def drawcircuit(paircounts):
 
     qc.measure(alicekeyqbit, alicekeyCbit)
     qc.measure(bobkeyqbit,bobkeyCbit)
+
+    if inject_quantum_eve:
+            for i in range(paircounts):
+                # Eve chooses her measurement basis randomly
+                if random.randint(0, 1) == 1:
+                    qc.h(evekeyQbit[i])
+            qc.measure(evekeyQbit, evekeyCbit)
 
     return qc
 
@@ -126,7 +137,10 @@ def sanitycheck(alicekey,bobkey,alicebasis,bobbasis):
 def main():
     paircounts=4
     textsize=1024
-    qc= drawcircuit(paircounts)
+
+    inject_quantum_eve= False
+
+    qc= drawcircuit(paircounts,inject_quantum_eve)
     results= run(textsize,qc)
     alicekey,bobkey,Alicebasis,Bobbasis= extractkeys(results)
     sanitycheck(alicekey,bobkey,Alicebasis,Bobbasis)
