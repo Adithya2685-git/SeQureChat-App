@@ -4,39 +4,14 @@ import './Chat.css';
 import chatbackground from '../../assets/chatbackground.jpg';
 
 const xorEncryptDecrypt = (input, binaryKey) => {
-    // Step 1: Convert the input string to a UTF-8 byte array.
     const inputBytes = new TextEncoder().encode(input);
+    const result = new Uint8Array(inputBytes.length);
 
-    // Step 2: Convert the binary key string (e.g., "10110010...") into a byte array.
-    // This is necessary for a correct byte-wise XOR operation.
-    if (binaryKey.length % 8 !== 0) {
-        throw new Error('Invalid key length: Key must be a string representing a whole number of bytes (multiple of 8 bits).');
-    }
-    const keyBytes = new Uint8Array(binaryKey.length / 8);
-    for (let i = 0; i < keyBytes.length; i++) {
-        const byteString = binaryKey.substring(i * 8, (i + 1) * 8);
-        keyBytes[i] = parseInt(byteString, 2);
-    }
-
-    // Step 3: Enforce One-Time Pad Security Rule
-    // The key must be at least as long as the message. Your app already ensures
-    // the key (1024 bits) is as long as the max message (128 chars = 1024 bits),
-    // but this check is a critical safeguard.
-    if (inputBytes.length > keyBytes.length) {
-        const errorMessage = `SECURITY-CRITICAL-ERROR: Message length (${inputBytes.length} bytes) exceeds key length (${keyBytes.length} bytes). Cannot encrypt securely.`;
-        console.error(errorMessage);
-        throw new Error(errorMessage);
-    }
-
-    // Step 4: Perform the byte-wise XOR operation.
-    const resultBytes = new Uint8Array(inputBytes.length);
     for (let i = 0; i < inputBytes.length; i++) {
-        // XOR each input byte with the corresponding key byte.
-        resultBytes[i] = inputBytes[i] ^ keyBytes[i];
+        const keyBit = parseInt(binaryKey[i % binaryKey.length], 10);
+        result[i] = inputBytes[i] ^ keyBit;
     }
-
-    // Step 5: Convert the resulting byte array back to a readable string.
-    return new TextDecoder().decode(resultBytes);
+    return new TextDecoder().decode(result);
 };
 
 function Chat() {

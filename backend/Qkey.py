@@ -1,77 +1,8 @@
-from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+from qiskit import QuantumCircuit,QuantumRegister, ClassicalRegister
 from qiskit_aer import AerSimulator
-from qiskit import transpile
-from concurrent.futures import ThreadPoolExecutor
+from qiskit.transpiler import generate_preset_pass_manager
+from qiskit_ibm_runtime import SamplerV2 as Sampler
 
-#basis gates qubit pairs for ALice and Bob Each
-# if 4096 then 4096 for alice and bob
-
-    #Aer simulate it for number of qubits required size
-    # Shots = qubits /4
-def measure(circuits,shots):
-    simulator= AerSimulator()
-
-    # Ensure `circuits` is a list
-    if not isinstance(circuits, list):
-        circuits = [circuits]
-
-    job= simulator.run(circuits, shots=shots,memory= True)
-    result = job.result()
-
-    finalstring=""
-    
-    for i in range(len(circuits)):
-        bitstrings = result.get_memory(i)
-        for bitstring in bitstrings:
-            finalstring+= bitstring
-    
-    finalstring= finalstring.replace(" ", "")
-    return finalstring
-
-def rng(qubits):
-    
-    qc= QuantumCircuit(4,4)
-    for i in range(4):
-        qc.h(i)
-
-    qc.measure_all()
-    return measure(qc,qubits//4)
-
-def makecircuits(totalcircuitscount,paircounts, Alicebasis,Bobbasis):
-    circuits=[]
-    for i in range(totalcircuitscount):
-        qc= QuantumCircuit(paircounts*2,paircounts*2)
-        for j in range(paircounts):
-             basisindex=i*paircounts+j
-
-             qc.h(j*2)
-             qc.cx(j*2,j*2+1)
-
-             if Alicebasis[basisindex]=='1' :
-                 qc.h(j*2)
-             if Bobbasis[basisindex]=='1':
-                 qc.h(j*2+1)
-
-        qc.measure_all()
-        circuits.append(qc)
-
-    transpiled_circuits = transpile(circuits, AerSimulator())
-    measuredstring= measure(transpiled_circuits,1)
-
-    return measuredstring
-
-def extract_keys(measuredstring):
-    """Extract Alice and Bob keys from measured string"""
-    alicekey = ""
-    bobkey = ""
-    
-    for i in range(len(measuredstring)):
-        if i % 2 == 0:
-            alicekey += measuredstring[i]
-        else:
-            bobkey += measuredstring[i]
-    
-    return alicekey, bobkey
 
 def filter_keys_by_basis(alicekey, bobkey, Alicebasis, Bobbasis):
     """Remove bits where basis isn't the same from keys"""
@@ -87,47 +18,102 @@ def filter_keys_by_basis(alicekey, bobkey, Alicebasis, Bobbasis):
     
     return filtered_alicekey, filtered_bobkey, finalbasis
 
-def main():
-    textsizelimit= 1024
+def drawcircuit(paircounts):
+    alicebasisCbit= ClassicalRegister(paircounts,name='alicebasis')
+    bobbasisCbit= ClassicalRegister(paircounts,name='bobbasis')
 
-    qubitpairs= textsizelimit *4
-    paircounts=4
+    alicebasisQbit= QuantumRegister(paircounts,name='QbasisA')
+    bobbasisQbit= QuantumRegister(paircounts, name='QbasisB')
 
-    # Threading RNG for better performance
-    with ThreadPoolExecutor(max_workers=2) as executor:
-        alice_future = executor.submit(rng, qubitpairs)
-        bob_future = executor.submit(rng, qubitpairs)
-        
-        Alicebasis = alice_future.result()
-        Bobbasis = bob_future.result()
+    alicekeyqbit=QuantumRegister(paircounts,name='Qalice') 
+    bobkeyqbit= QuantumRegister(paircounts, name='Qbob')
 
-    # 0 2 4 6 Alice , 1 3 5 7 BOB ... Even Alice, Odd bob
-    totalcircuitscount= qubitpairs// paircounts
-    
-    measuredstring=makecircuits(totalcircuitscount,paircounts, Alicebasis,Bobbasis)
-    
-    # Extract initial keys
-    alicekey, bobkey = extract_keys(measuredstring)
-    
-    # Filter keys based on matching basis
-    #final_alicekey, final_bobkey, finalbasis = filter_keys_by_basis(alicekey, bobkey, Alicebasis, Bobbasis)
-    
+    alicekeyCbit= ClassicalRegister(paircounts, name='alicekey')
+    bobkeyCbit= ClassicalRegister(paircounts, name='bobkey')
+
+    qc= QuantumCircuit(alicebasisQbit,bobbasisQbit,alicekeyqbit,bobkeyqbit,alicebasisCbit, bobbasisCbit, alicekeyCbit, bobkeyCbit)
+
+
+    qc.h(alicebasisQbit)
+    qc.measure(alicebasisQbit,alicebasisCbit)
+
+    qc.h(bobbasisQbit)
+    qc.measure(bobbasisQbit,bobbasisCbit)
+
+    qc.h(alicekeyqbit)
+    qc.cx(alicekeyqbit,bobkeyqbit)
+
+    # basis for alice and bob , 0 = Z,  1= X, So another H is done for if_test=1 
+    for i in range(paircounts):
+        with qc.if_test((alicebasisCbit[i],1)) as else_:
+            qc.h(alicekeyqbit[i])
+
+    for i in range(paircounts):
+        with qc.if_test((bobbasisCbit[i],1)) as else_:
+            qc.h(bobkeyqbit[i])    
+
+    qc.measure(alicekeyqbit, alicekeyCbit)
+    qc.measure(bobkeyqbit,bobkeyCbit)
+
+    return qc
+
+def run(textsize,qc):
+    backend= AerSimulator()
+    pm = generate_preset_pass_manager(backend = backend, optimization_level=3)
+    qc_isa = pm.run(qc)
+
+    # run and get counts
+    sampler = Sampler(mode=backend)
+    results = sampler.run([qc_isa], shots = textsize*2).result()[0].data
+
+    return results
+
+
+def extractkeys(results):
+    alicebasisdict= results.alicebasis.get_bitstrings()
+    bobbasisdict= results.bobbasis.get_bitstrings()
+
+    alicekeydict= results.alicekey.get_bitstrings()
+    bobkeydict= results.bobkey.get_bitstrings()
+
+    alicebasis=""
+    bobbasis=""
+
+    alicekey=""
+    bobkey=""
+
+    for element in alicebasisdict:
+        alicebasis+= element
+
+    for element in bobbasisdict:
+        bobbasis+= element
+
+    for element in alicekeydict:
+        alicekey+= element
+
+    for element in bobkeydict:
+        bobkey+= element
+
+    return alicekey,bobkey,alicebasis,bobbasis
+
+def sanitycheck(alicekey,bobkey,alicebasis,bobbasis):
     # VVV --- ADD THIS DEBUGGING BLOCK --- VVV
 
     print("\n--- RUNNING BACKEND SANITY CHECK ---")
-    
+        
     # Step 1: Sift the keys using the known bases, just like the frontend does.
-    sifted_alice, sifted_bob, _ = filter_keys_by_basis(alicekey, bobkey, Alicebasis, Bobbasis)
+    sifted_alice, sifted_bob, _ = filter_keys_by_basis(alicekey, bobkey, alicebasis, bobbasis)
 
     # Step 2: Compare the two sifted keys to check for mismatches.
     mismatches = 0
+
     if len(sifted_alice) != len(sifted_bob):
         print("❌ FATAL ERROR: Sifted keys have different lengths!")
     else:
         for i in range(len(sifted_alice)):
             if sifted_alice[i] != sifted_bob[i]:
                 mismatches += 1
-    
+        
     if mismatches > 0:
         error_rate = (mismatches / len(sifted_alice)) * 100
         print(f"❌ BUG CONFIRMED: Found {mismatches} mismatches in the generated keys.")
@@ -136,8 +122,17 @@ def main():
         print("✅ SUCCESS: Keys are perfectly correlated. The bug is not in the generation script.")
 
     # ^^^ --- END OF DEBUGGING BLOCK --- ^^^
+
+def main():
+    paircounts=4
+    textsize=1024
+    qc= drawcircuit(paircounts)
+    results= run(textsize,qc)
+    alicekey,bobkey,Alicebasis,Bobbasis= extractkeys(results)
+    sanitycheck(alicekey,bobkey,Alicebasis,Bobbasis)
     
     return alicekey,Alicebasis, bobkey,Bobbasis
 
 if __name__== '__main__':
     main()
+
