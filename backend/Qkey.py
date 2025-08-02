@@ -87,17 +87,6 @@ def filter_keys_by_basis(alicekey, bobkey, Alicebasis, Bobbasis):
     
     return filtered_alicekey, filtered_bobkey, finalbasis
 
-def test_subset(final_alicekey, final_bobkey, finalbasis):
-    import random
-    while len(finalbasis)> 1024:
-        index= random.choice(finalbasis)
-
-        if final_alicekey[index]== final_bobkey[index]:
-            final_alicekey= final_alicekey[:index]+ final_alicekey[index+1:]   
-            final_bobkey= final_bobkey[:index]+ final_bobkey[index+1:]
-        else:
-            print("[ABORT] ERROR IN KEY GENERATION")
-
 def main():
     textsizelimit= 1024
 
@@ -123,7 +112,30 @@ def main():
     # Filter keys based on matching basis
     #final_alicekey, final_bobkey, finalbasis = filter_keys_by_basis(alicekey, bobkey, Alicebasis, Bobbasis)
     
-    #final_alicekey,final_bobkey,finalbasis= test_subset(final_alicekey, final_bobkey, finalbasis)
+    # VVV --- ADD THIS DEBUGGING BLOCK --- VVV
+
+    print("\n--- RUNNING BACKEND SANITY CHECK ---")
+    
+    # Step 1: Sift the keys using the known bases, just like the frontend does.
+    sifted_alice, sifted_bob, _ = filter_keys_by_basis(alicekey, bobkey, Alicebasis, Bobbasis)
+
+    # Step 2: Compare the two sifted keys to check for mismatches.
+    mismatches = 0
+    if len(sifted_alice) != len(sifted_bob):
+        print("❌ FATAL ERROR: Sifted keys have different lengths!")
+    else:
+        for i in range(len(sifted_alice)):
+            if sifted_alice[i] != sifted_bob[i]:
+                mismatches += 1
+    
+    if mismatches > 0:
+        error_rate = (mismatches / len(sifted_alice)) * 100
+        print(f"❌ BUG CONFIRMED: Found {mismatches} mismatches in the generated keys.")
+        print(f"   This is a Quantum Bit Error Rate (QBER) of {error_rate:.2f}%")
+    else:
+        print("✅ SUCCESS: Keys are perfectly correlated. The bug is not in the generation script.")
+
+    # ^^^ --- END OF DEBUGGING BLOCK --- ^^^
     
     return alicekey,Alicebasis, bobkey,Bobbasis
 
