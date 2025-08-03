@@ -24,8 +24,8 @@ app.add_middleware(
 
 
 #mongoDB integration
-username = "adi"
-password = quote_plus("Adithya2685@000")  # Escapes special characters
+username = ""
+password = quote_plus("")  # Escapes special characters
 uri = f"mongodb+srv://{username}:{password}@cluster0.mxvkyjc.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 
 client = MongoClient(uri, server_api=ServerApi('1'))
